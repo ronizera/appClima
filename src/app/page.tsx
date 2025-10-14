@@ -1,103 +1,77 @@
-import Image from "next/image";
+"use client"
+
+import { useState } from "react";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [valor, setValor] = useState<string>("")
+  const [moedaOrigem, setMoedaOrigem] = useState<string>("BRL")
+  const [moedaDestino, setMoedaDestino] = useState<string>("USD")
+  const [resultado, setResultado] = useState<number | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [erro, setErro] = useState<string>("")
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  const converter = async () => {
+    const valorNumerico = parseFloat(valor)
+    if (isNaN(valorNumerico) || valorNumerico <= 0) {
+      setErro("Digite um valor válido")
+      return
+    }
+
+    setErro("")
+    setResultado(null)
+    setLoading(true)
+
+    try {
+      const res = await fetch(`https://open.er-api.com/v6/latest/${moedaOrigem}`)
+      if (!res.ok) throw new Error("Erro ao obter taxa de câmbio")
+
+      const data = await res.json()
+
+      const taxa = data?.rates?.[moedaDestino]
+
+      if (!taxa) throw new Error("Conversão indisponível no momento")
+
+      const convertido = valorNumerico * taxa
+      setResultado(convertido)
+    } catch (err: unknown) {
+      if (err instanceof Error) setErro(err.message)
+      else setErro("Erro desconhecido")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div>
+      <h1>Conversor de Moedas</h1>
+
+      <input
+        type="number"
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        placeholder="Digite um valor"
+      />
+
+      <select value={moedaOrigem} onChange={(e) => setMoedaOrigem(e.target.value)}>
+        <option value="BRL">BRL</option>
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+      </select>
+
+      <select value={moedaDestino} onChange={(e) => setMoedaDestino(e.target.value)}>
+        <option value="BRL">BRL</option>
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+      </select>
+
+      <button onClick={converter}>Converter</button>
+
+      {loading && <p>Carregando...</p>}
+      {erro && <p style={{ color: "red" }}>{erro}</p>}
+
+      {resultado !== null && (
+        <p>{valor} {moedaOrigem} = {resultado.toFixed(2)} {moedaDestino}</p>
+      )}
     </div>
   );
 }
